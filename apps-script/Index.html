@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: -apple-system, Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; color: #1a1a1a; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filters input, .filters select { padding: 6px 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; }
+    button { padding: 6px 14px; font-size: 14px; border: none; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    .summary { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 16px; min-width: 140px; }
+    .card .label { font-size: 12px; color: #666; }
+    .card .value { font-size: 20px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+    th { color: #666; font-weight: 600; }
+    .warn { color: #b45309; font-size: 12px; margin-top: 8px; }
+    .muted { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Receipt Tracker</h1>
+
+  <div class="filters">
+    <select id="shop"><option value="">All shops</option></select>
+    <input id="dateFrom" type="date" title="From">
+    <input id="dateTo" type="date" title="To">
+    <input id="itemQuery" type="text" placeholder="Item contains…">
+    <button onclick="run()">Search</button>
+    <button onclick="refresh()" title="Bypass cache and re-read Drive">↻ Refresh</button>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div id="warnings"></div>
+
+  <table id="results">
+    <thead>
+      <tr><th>Date</th><th>Shop</th><th>Location</th><th>Total</th><th>Items</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function getFilters() {
+      return {
+        shop: document.getElementById('shop').value,
+        dateFrom: document.getElementById('dateFrom').value,
+        dateTo: document.getElementById('dateTo').value,
+        itemQuery: document.getElementById('itemQuery').value,
+      };
+    }
+
+    function run() {
+      const filters = getFilters();
+      google.script.run.withSuccessHandler(renderResults).searchReceipts(filters);
+      google.script.run.withSuccessHandler(renderSummary).summarize(filters);
+    }
+
+    function refresh() {
+      google.script.run.withSuccessHandler(run).invalidateCache();
+    }
+
+    function renderSummary(s) {
+      document.getElementById('summary').innerHTML = `
+        <div class="card"><div class="label">Receipts</div><div class="value">${s.receiptCount}</div></div>
+        <div class="card"><div class="label">Total spend</div><div class="value">£${s.totalSpend.toFixed(2)}</div></div>
+        <div class="card"><div class="label">Top shop</div><div class="value">${s.byShop[0] ? s.byShop[0].shop : '—'}</div></div>
+      `;
+      const w = document.getElementById('warnings');
+      w.innerHTML = s.warnings.length
+        ? `<div class="warn">⚠ ${s.warnings.length} receipt(s) don't reconcile — check ${s.warnings.map(x => x.shop + ' ' + x.purchase_date).join(', ')}</div>`
+        : '';
+    }
+
+    function renderResults(receipts) {
+      const tbody = document.querySelector('#results tbody');
+      tbody.innerHTML = receipts.map(r => `
+        <tr>
+          <td>${r.purchase_date || ''}</td>
+          <td>${r.shop || ''}</td>
+          <td class="muted">${r.store_location || ''}</td>
+          <td>£${(r.summary && r.summary.balance_due || 0).toFixed(2)}</td>
+          <td class="muted">${(r.items || []).filter(i => i.status !== 'cancelled').map(i => i.name).join(', ')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function loadShops() {
+      google.script.run.withSuccessHandler(shops => {
+        const sel = document.getElementById('shop');
+        shops.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s; opt.textContent = s;
+          sel.appendChild(opt);
+        });
+      }).listShops();
+    }
+
+    loadShops();
+    run();
+  </script>
+</body>
+</html>
