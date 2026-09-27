@@ -5,6 +5,10 @@ description: "Use this skill whenever a receipt image is uploaded and the user w
 
 # Receipt Tracker Skill
 
+## Prerequisites
+1. Connect Claude to Google Drive (Settings → Connectors → Google Drive), and grant it in this conversation if prompted.
+2. Create a folder named `receipt-tracker` in the Drive location you want records saved to. The skill creates `<shop>`/`<purchase-date>` subfolders under it automatically — you only need the top-level folder to exist.
+
 ## Overview
 Given an uploaded receipt image, this skill:
 1. Interprets the full purchase history from the image

@@ -52,7 +52,9 @@ Cancelled/discounted items stay in `items` (never deleted) — see `skill/SKILL.
 ## Setup
 
 ### 1. Install the Claude skill
-Copy `skill/SKILL.md` into your Claude skills folder (or upload it as a project skill). Nothing to configure — it just needs Google Drive tool access to upload files.
+1. Connect Claude to Google Drive (Settings → Connectors → Google Drive).
+2. Create a folder named `receipt-tracker` in the Drive location you want records saved to — the skill creates the `<shop>`/`<date>` subfolders under it automatically.
+3. Copy `skill/SKILL.md` into your Claude skills folder (or upload it as a project skill).
 
 ### 2. Deploy the Apps Script app
 1. Go to [script.google.com](https://script.google.com) → New project.
